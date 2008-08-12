@@ -54,15 +54,19 @@ module Admin::FileHelper
   end    
       
   def link_to_new_file(asset)
-    link_to image('add-child', :alt => 'add child'), new_file_path(:parent_id => asset.id, :v => asset.lock)  if asset.is_a?(DirectoryAsset)
+    link_to image('add-child', :alt => 'add child'), new_file_path(:parent => escape(asset.full_path)) if asset.is_a?(DirectoryAsset)
   end
   
   def link_to_remove_file(asset)
-    link_to image('remove', :alt => 'remove page'), '/admin/files/remove?id=' + asset.id.to_s + '&v=' + asset.lock.to_s unless (asset.respond_to?(:root?) and asset.root?)
+    link_to image('remove', :alt => 'remove page'), "/admin/files/remove?path=#{asset.full_path}&v=#{asset.lock}" unless (asset.respond_to?(:root?) and asset.root?)
   end
 
   def link_to_rename_file(asset)
-     (asset.respond_to?(:root?) and asset.root?) ? asset.basename : "<a href='/admin/files/edit?id=#{asset.id}&v=#{asset.lock}'>#{asset.basename}</a>"
+     (asset.respond_to?(:root?) and asset.root?) ? asset.basename : "<a href='/admin/files/edit?path=#{asset.full_path}&v=#{asset.lock}'>#{asset.basename}</a>"
   end
-  
+
+  def escape(param)
+    #CGI::escape(param)  
+    param
+  end 
 end

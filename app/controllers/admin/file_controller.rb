@@ -7,11 +7,12 @@ class Admin::FileController < ApplicationController
   
   def new
     @asset_lock = AssetLock.lock_version
-    @parent_id = params[:parent_id]
+    @parent = params[:parent]
     params[:v].blank? ? lock_pass = true : lock_pass = AssetLock.confirm_lock(params[:v])
     if lock_pass
       if request.post?
         if params[:asset][:new_type] == 'Directory'
+puts "PARENT NAME " + params[:asset][:parent].to_s
           @file = DirectoryAsset.new(params[:asset])
         else
           @file = FileAsset.new(params[:asset])
@@ -51,7 +52,7 @@ class Admin::FileController < ApplicationController
   end
   
   def edit
-    @file = Asset.find(params[:id], params[:v])
+    @file = Asset.find(params[:path], params[:v])
     
     if @file.exists?
       if request.post?

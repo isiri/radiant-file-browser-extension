@@ -2,7 +2,7 @@ module DirectoryArray
 #  attr_accessor  :directory_hash, :lock_version
   @@directory_hash = nil
   @@lock_version = nil  
-
+=begin
   def get_directory_array(path)
     path_str = path.to_s
     @@directory_hash = {} if @@directory_hash.nil?
@@ -30,11 +30,11 @@ module DirectoryArray
     @@directory_hash = nil 
     @@lock_version = nil
   end
-
+=end
   def hidden?(path)
     path.realpath.basename.to_s =~ (/^\./)
   end    
-
+=begin
   def id2path(id)
     asset_absolute_path = Pathname.new(FileBrowserExtension.asset_path.to_s)      
     asset_array = get_directory_array(asset_absolute_path)
@@ -47,17 +47,17 @@ module DirectoryArray
     relative_path = Pathname.new(path).relative_path_from(asset_absolute_path)
     asset_array.index(relative_path)
   end
-
+=end
   def absolute_path(asset_relative_path=nil)
     asset_relative_path = nil if (!asset_relative_path.nil? and asset_relative_path.strip == '')
     asset_relative_path.nil? ? FileBrowserExtension.asset_path.to_s : File.join(FileBrowserExtension.asset_path.to_s, asset_relative_path)
   end
-
+=begin
   def get_parent_id(id)
     path = id2path(id)    
     parent_path = path.parent
     return path2id(parent_path) unless parent_path == absolute_path
     return nil
   end
-
+=end
 end

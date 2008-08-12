@@ -4,31 +4,26 @@ class FileAsset < Asset
   def initialize(asset)
     @uploaded_data = asset['uploaded_data']
     filename = @uploaded_data.blank? ? '' : @uploaded_data.original_filename
-    @pathname = asset['pathname']
-    @id = asset['id']
-    filename = asset['name'] if self.exists?
+    filename = asset['name'] if asset['name']
     @asset_name = sanitize(filename)
-    @parent_id = asset['parent_id']
     @version = asset['version']
+    if full_pathname(@asset_name).expand_path == Pathname.new(absolute_path).expand_path
+      @parent = ""
+    else
+      @parent = asset['parent']
+    end
   end
 
   def save
     if valid?
       begin
         raise Errors, :modified unless AssetLock.confirm_lock(@version)
-        upload_location = upload_location(@parent_id)
-        new_file = Pathname.new(File.join(upload_location, @asset_name))
-        raise Errors, :modified unless AssetLock.confirm_lock(@version)
-        File.open(new_file, 'wb') { |f| f.write(@uploaded_data.read) }
-        reset_directory_hash
-        @id = path2id(new_file)
-        @pathname = new_file
+        File.open(full_pathname(full_path), 'wb') { |f| f.write(@uploaded_data.read) }
         @version = AssetLock.new_lock_version
       rescue Errors => e
         add_error(e)
       end
     end
-    @id
   end
 
   def destroy
@@ -45,7 +40,7 @@ class FileAsset < Asset
   end
 
   def extension 
-    ext = @pathname.extname
+    ext = pathname.extname
     ext.slice(1, ext.length) if ext.slice(0,1) == '.'
   end
 
@@ -55,11 +50,10 @@ class FileAsset < Asset
     return false 
   end  
 
-  def embed_tag
-    path = id2path(@id)    
-    asset_path = path.relative_path_from(Pathname.new(FileBrowserExtension.asset_parent_path))
+  def embed_tag   
+    asset_path = pathname
     if image?
-      file_content = @pathname.read
+      file_content = pathname.read
       img = ImageSize.new(file_content, extension)    
       return "<img src='/#{asset_path}' width='#{img.get_width}px' height='#{img.get_height}px' />"
     else

@@ -1,23 +1,21 @@
 class DirectoryAsset < Asset
 
   def initialize(asset)
-    @asset_name = sanitize(asset['name'])
-    @parent_id = asset['parent_id']
     @version = asset['version']
-    @pathname = asset['pathname']
-    @id = asset['id']
+    @asset_name = sanitize(asset['name'])
+    if full_pathname(@asset_name).expand_path == Pathname.new(absolute_path).expand_path
+      @parent = ""
+    else
+      @parent = asset['parent']
+    end
   end
 
   def save
     if valid?      
       begin   
-        upload_location = upload_location(@parent_id)
-        new_dir = Pathname.new(File.join(upload_location, @asset_name))
+        new_dir = full_pathname(full_path)
         raise Errors, :modified unless AssetLock.confirm_lock(@version)
         Dir.mkdir(new_dir)       
-        reset_directory_hash
-        @id = path2id(new_dir)
-        @pathname = new_dir
         @version = AssetLock.new_lock_version
       rescue Errors => e
         add_error(e)
@@ -48,7 +46,7 @@ class DirectoryAsset < Asset
   end
 
   def children
-    @pathname.children.map { |c| (Asset.find_by_pathname(c) unless c.basename.to_s =~ (/^\./) ) }.compact
+    pathname.children.map { |c| (Asset.find_by_pathname(c) unless c.basename.to_s =~ (/^\./) ) }.compact
   end
 
   def html_class
@@ -56,7 +54,7 @@ class DirectoryAsset < Asset
   end
 
   def root?
-    @pathname.to_s == absolute_path
+    pathname.expand_path == Pathname.new(absolute_path).expand_path
   end
 
   def icon

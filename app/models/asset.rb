@@ -2,16 +2,16 @@ include DirectoryArray
 
 class Asset
   include Validatable
-  attr_reader :parent_id, :version, :pathname, :id, :asset_name, :class_type
+  attr_reader :version, :asset_name, :parent
 
   validates_each :asset_name, :logic => lambda {
-    expanded_full_path = File.expand_path(File.join(upload_location(@parent_id), @asset_name))  
+    expanded_full_path = full_pathname((File.join(@parent, @asset_name))).expand_path 
     class_type = self.class.to_s.gsub(/Asset/,'').downcase
     if @asset_name.blank?
       errors.add(:asset_name, Errors::CLIENT_ERRORS[:blankname])
     elsif (@asset_name.slice(0,1) == '.') || @asset_name.match(/\/|\\/)
       errors.add(:asset_name, Errors::CLIENT_ERRORS[:illegal_name])
-    elsif expanded_full_path.index(absolute_path) != 0
+    elsif expanded_full_path.to_s.index(absolute_path) != 0
       errors.add(:asset_name, Errors::CLIENT_ERRORS[:illegal_path])
     elsif Pathname.new(expanded_full_path).send("#{class_type}?") 
       errors.add(:asset_name, Errors::CLIENT_ERRORS[:exists])    
@@ -19,18 +19,17 @@ class Asset
   }
 
   def rename(asset)
+    rename_asset_path = full_path
     @asset_name = sanitize(asset['name'])
     begin
       raise Errors, :unknown unless self.exists?
       if valid?
-        raise Errors, :modified unless Asset.find(@id, @version).exists? 
-        new_asset = Pathname.new(File.join(@pathname.parent, @asset_name))
-        @pathname.rename(new_asset)
-        reset_directory_hash
-        @pathname = Pathname.new(new_asset)
-        @id = path2id(new_asset)
+        raise Errors, :modified unless Asset.find(rename_asset_path, @version).exists? 
+        asset_pathname = full_pathname(rename_asset_path) 
+        new_asset = Pathname.new(File.join(asset_pathname.parent, @asset_name))
+        asset_pathname.rename(new_asset)
         @version = AssetLock.new_lock_version
-        @parent_id = get_parent_id(@id)
+        @parent = asset_pathname.parent
         return true
       end
     rescue Errors => e
@@ -40,21 +39,29 @@ class Asset
   end
   
   def size
-    @pathname.size
-  end
-  
-  def basename
-    @pathname.basename
-  end
+    pathname.size
+  end  
 
   def exists?
-    @pathname.nil? ? false : true
+    pathname.nil? ? false : true
   end
 
   def lock
     # TODO: Abstract away all lock versiony stuff.
     # asset.version should probably be the only public interface
     AssetLock.lock_version
+  end
+
+  def pathname
+    full_pathname(full_path)
+  end
+
+  def basename
+    pathname.basename
+  end
+
+  def full_path
+    File.join(@parent, @asset_name)
   end
 
   class << self
@@ -70,10 +77,10 @@ class Asset
       find_by_pathname(Pathname.new(absolute_path))
     end
 
-    def find_from_id(id, version)
-      if AssetLock.confirm_lock(version) and !id.blank? 
-        asset_path = id2path(id)
-        find_by_pathname(asset_path, version)
+    def find_from_id(path, version)
+      if AssetLock.confirm_lock(version) and !path.blank? 
+        full_path = full_pathname(path)
+        find_by_pathname(full_path, version)
       else     
         empty_asset = DirectoryAsset.new('name' => '', 'pathname' => nil, 'new_type' => '')
         id.blank? ? err_type = :blankid : err_type = :modified
@@ -84,15 +91,19 @@ class Asset
 
     def find_by_pathname(asset_path, version=AssetLock.lock_version)
       name = asset_path.basename.to_s
+      asset_absolute_path = Pathname.new(absolute_path)
+      asset = asset_path.relative_path_from(asset_absolute_path)
       raise Errors, :illegal_name if name =~ (/^\./) 
       raise Errors, :illegal_path if asset_path.to_s.index(absolute_path) != 0 
-      parent_id = path2id(asset_path.parent)
-      id = path2id(asset_path)  
       if asset_path.directory?
-        DirectoryAsset.new('name' => name, 'parent_id' => parent_id, 'id' => id, 'pathname' => asset_path, 'version' => version)
+        DirectoryAsset.new('name' => asset.basename.to_s, 'parent' => asset.parent.to_s, 'version' => version)
       else
-        FileAsset.new('name' => name, 'parent_id' => parent_id, 'id' => id, 'pathname' => asset_path, 'version' => version)
+        FileAsset.new('name' => asset.basename.to_s, 'parent' => asset.parent.to_s, 'version' => version)
       end 
+    end
+
+    def full_pathname(relative_path)
+      Pathname.new(File.join(absolute_path, relative_path)).expand_path
     end
 
   end
@@ -103,13 +114,8 @@ class Asset
     FileBrowserExtension.asset_path
   end
 
-  def upload_location(parent_id)
-    if parent_id.blank?
-      upload_location = absolute_path        
-    else
-      upload_location = id2path(parent_id)        
-    end
-    return upload_location
+  def full_pathname(relative_path)
+    Asset.full_pathname(relative_path)
   end
 
   def add_error(e)
