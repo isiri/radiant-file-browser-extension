@@ -11,6 +11,7 @@ module Admin::FileHelper
           
   def expanded_rows_with_asset_lock
     unless @expanded_rows
+puts "TTTTTTTTTTTTTYYYYYYYYYYYYYYY:" + cookies[:expanded_rows].to_s
       @expanded_rows = case
       when (rows = cookies[:expanded_rows] and version = cookies[:version])         
         AssetLock.confirm_lock(version) ? rows.split(',').map { |x| Integer(x) rescue nil }.compact : []
@@ -54,15 +55,15 @@ module Admin::FileHelper
   end    
       
   def link_to_new_file(asset)
-    link_to image('add-child', :alt => 'add child'), new_file_path(:parent => escape(asset.full_path)) if asset.is_a?(DirectoryAsset)
+    link_to image('add-child', :alt => 'add child'), new_file_path(:parent => escape(asset.rel_path)) if asset.is_a?(DirectoryAsset)
   end
   
   def link_to_remove_file(asset)
-    link_to image('remove', :alt => 'remove page'), "/admin/files/remove?path=#{asset.full_path}&v=#{asset.lock}" unless (asset.respond_to?(:root?) and asset.root?)
+    link_to image('remove', :alt => 'remove page'), "/admin/files/remove?path=#{asset.rel_path}&v=#{asset.lock}" unless (asset.respond_to?(:root?) and asset.root?)
   end
 
   def link_to_rename_file(asset)
-     (asset.respond_to?(:root?) and asset.root?) ? asset.basename : "<a href='/admin/files/edit?path=#{asset.full_path}&v=#{asset.lock}'>#{asset.basename}</a>"
+     (asset.respond_to?(:root?) and asset.root?) ? asset.basename : "<a href='/admin/files/edit?path=#{asset.rel_path}&v=#{asset.lock}'>#{asset.basename}</a>"
   end
 
   def escape(param)

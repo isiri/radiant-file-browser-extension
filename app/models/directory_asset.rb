@@ -13,7 +13,7 @@ class DirectoryAsset < Asset
   def save
     if valid?      
       begin   
-        new_dir = full_pathname(full_path)
+        new_dir = full_pathname(rel_path)
         raise Errors, :modified unless AssetLock.confirm_lock(@version)
         Dir.mkdir(new_dir)       
         @version = AssetLock.new_lock_version
@@ -29,11 +29,10 @@ class DirectoryAsset < Asset
   end
 
   def destroy
-      path = id2path(@id)
+      path = full_pathname(rel_path)
       raise Errors, :illegal_path if (path.to_s == absolute_path or path.to_s.index(absolute_path) != 0) 
-      raise Errors, :modified unless Asset.find(@id, @version).exists? 
+      raise Errors, :modified unless Asset.find(rel_path, @version).exists? 
       FileUtils.rm_r path, :force => true
-      reset_directory_hash
       AssetLock.new_lock_version         
       return true
     rescue Errors => e 

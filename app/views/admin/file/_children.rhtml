@@ -1,4 +1,4 @@
-<tr class="level-<%= level -%> <%= asset.html_class -%> node" id = "page-<%= asset.id -%>" >   
+<tr class="level-<%= level -%> <%= asset.html_class -%> node" id = "page-<%= asset.rel_path -%>" >   
   <td style="padding-left: <%= padding_left(level)-%>px;">
     <span class="w1">
       <%= expander_for(asset) unless simple -%>

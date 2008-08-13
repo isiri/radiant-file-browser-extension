@@ -19,7 +19,7 @@ class Asset
   }
 
   def rename(asset)
-    rename_asset_path = full_path
+    rename_asset_path = rel_path
     @asset_name = sanitize(asset['name'])
     begin
       raise Errors, :unknown unless self.exists?
@@ -53,15 +53,15 @@ class Asset
   end
 
   def pathname
-    full_pathname(full_path)
+    full_pathname(rel_path)
   end
 
   def basename
     pathname.basename
   end
 
-  def full_path
-    File.join(@parent, @asset_name)
+  def rel_path
+    full_pathname(File.join(@parent, @asset_name)).expand_path.relative_path_from(Pathname.new(absolute_path)).to_s
   end
 
   class << self

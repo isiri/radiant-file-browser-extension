@@ -18,7 +18,7 @@ class FileAsset < Asset
     if valid?
       begin
         raise Errors, :modified unless AssetLock.confirm_lock(@version)
-        File.open(full_pathname(full_path), 'wb') { |f| f.write(@uploaded_data.read) }
+        File.open(full_pathname(rel_path), 'wb') { |f| f.write(@uploaded_data.read) }
         @version = AssetLock.new_lock_version
       rescue Errors => e
         add_error(e)
@@ -27,11 +27,10 @@ class FileAsset < Asset
   end
 
   def destroy
-      path = id2path(@id)
+      path = full_pathname(rel_path)
       raise Errors, :illegal_path if (path.to_s == absolute_path or path.to_s.index(absolute_path) != 0) 
-      raise Errors, :modified unless Asset.find(@id, @version).exists? 
+      raise Errors, :modified unless Asset.find(rel_path, @version).exists? 
       path.delete
-      reset_directory_hash
       AssetLock.new_lock_version         
       return true
     rescue Errors => e 
@@ -55,9 +54,9 @@ class FileAsset < Asset
     if image?
       file_content = pathname.read
       img = ImageSize.new(file_content, extension)    
-      return "<img src='/#{asset_path}' width='#{img.get_width}px' height='#{img.get_height}px' />"
+      return "<img src='/#{rel_path}' width='#{img.get_width}px' height='#{img.get_height}px' />"
     else
-      return "<a href='/#{asset_path}'>#{@asset_name.capitalize}</a>"
+      return "<a href='/#{rel_path}'>#{@asset_name.capitalize}</a>"
     end
   end
 

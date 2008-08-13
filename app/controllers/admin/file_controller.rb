@@ -12,7 +12,6 @@ class Admin::FileController < ApplicationController
     if lock_pass
       if request.post?
         if params[:asset][:new_type] == 'Directory'
-puts "PARENT NAME " + params[:asset][:parent].to_s
           @file = DirectoryAsset.new(params[:asset])
         else
           @file = FileAsset.new(params[:asset])
@@ -32,11 +31,8 @@ puts "PARENT NAME " + params[:asset][:parent].to_s
   end
   
   def remove
-    @asset = Asset.find(params[:id], params[:v])
-    # TODO: Refactor @asset.pathname.nil? to make @asset invalid, so
-    #       the following line would read unless @asset.valid?
-    #       this would also clean up a lot of the specs (one would remove the reader for pathname)
-    unless @asset.pathname.nil?
+    @asset = Asset.find(params[:path], params[:v])
+    if @asset.exists?
       if request.post?      
         if @asset.destroy
           flash[:notice] = "The asset was successfully removed."   

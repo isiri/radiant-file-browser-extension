@@ -29,9 +29,15 @@ var asset_lock = '<%=@root_asset.lock-%>';
 	
 //over-riding the sitemap.js -> getBranch and saveExpandedCookie methods
 SiteMap.addMethods ({
+        extractPageId: function(row) {
+          if (/page-(.+)/i.test(row.id)) {
+          return RegExp.$1;
+          }
+        },
         saveExpandedCookie: function() {
            document.cookie = "expanded_rows=" + encodeURIComponent(this.expandedRows.uniq().join(",")) + "; path=/admin; ";
-           document.cookie = "version=" + asset_lock + "; path=/admin; "; 
+alert(this.expandedRows.uniq().join(","));
+     //      document.cookie = "version=" + asset_lock + "; path=/admin; "; 
         },
 	getBranch: function(row) {
 	
